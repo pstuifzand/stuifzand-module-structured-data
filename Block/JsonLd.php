@@ -5,7 +5,7 @@ namespace Stuifzand\StructuredData\Block;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\AbstractBlock;
 use Magento\Framework\View\Element\Context;
-use Stuifzand\StructuredDataApi\Api\Data\CurrentObjectListInterface;
+use Stuifzand\StructuredData\Model\CurrentObjectFactory;
 use Stuifzand\StructuredData\Model\GeneratorFactory;
 
 /**
@@ -19,46 +19,43 @@ class JsonLd extends AbstractBlock
     private $serializer;
 
     /**
-     * @var \Stuifzand\StructuredDataApi\Api\Data\CurrentObjectInterface[]
-     */
-    private $currentObjectList;
-
-    /**
-     * @var \Stuifzand\StructuredDataApi\Api\Data\GeneratorInterface[]
-     */
-    private $generatorList;
-
-    /**
      * @var \Stuifzand\StructuredData\Model\GeneratorFactory
      */
     private $generatorFactory;
 
     /**
+     * @var \Stuifzand\StructuredData\Model\CurrentObjectFactory
+     */
+    private $currentObjectFactory;
+
+    /**
      * JsonLd constructor.
      * @param \Magento\Framework\View\Element\Context $context
      * @param \Magento\Framework\Serialize\Serializer\Json $serializer
-     * @param \Stuifzand\StructuredDataApi\Api\Data\CurrentObjectListInterface $currentObjectList
      * @param \Stuifzand\StructuredData\Model\GeneratorFactory $generatorFactory
+     * @param \Stuifzand\StructuredData\Model\CurrentObjectFactory $currentObjectFactory
      * @param array $data
      */
     public function __construct(
         Context $context,
         Json $serializer,
-        CurrentObjectListInterface $currentObjectList,
         GeneratorFactory $generatorFactory,
+        CurrentObjectFactory $currentObjectFactory,
         array $data = []
     ) {
         parent::__construct($context, $data);
 
         $this->serializer        = $serializer;
-        $this->currentObjectList = $currentObjectList->getCurrentObjects();
         $this->generatorFactory  = $generatorFactory;
+        $this->currentObjectFactory = $currentObjectFactory;
     }
 
     public function _toHtml()
     {
         $type = $this->getType();
-        if (!isset($this->currentObjectList[$type])) {
+
+        $currentObject = $this->currentObjectFactory->create($type);
+        if ($currentObject === null) {
             return '';
         }
 
@@ -66,8 +63,6 @@ class JsonLd extends AbstractBlock
         if ($generator === null) {
             return '';
         }
-
-        $currentObject = $this->currentObjectList[$type];
 
         $object = $currentObject->getCurrentObject();
         $data   = $generator->generate($object);
